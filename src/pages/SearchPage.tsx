@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import SearchBar from '../components/SearchBar';
 import JobCard from '../components/JobCard';
 import FilterSidebar from '../components/FilterSidebar';
 import ActiveFilters from '../components/ActiveFilters';
 import { searchAusbildungen } from '../api';
-import type { JobSearchItem, JobFilters } from '../types';
+import type { JobFilters } from '../types';
+import { useSearchStore } from '../store/useSearchStore';
 
 interface SearchPageProps {
   onSelectJob: (refnr: string) => void;
@@ -40,18 +42,24 @@ function parseInitialFilters(): JobFilters {
   const params = new URLSearchParams(window.location.search);
   const filters: JobFilters = {};
   
-  const was = params.get('was'); if (was) filters.was = was;
-  const wo = params.get('wo'); if (wo) filters.wo = wo;
-  const umkreis = params.get('umkreis'); if (umkreis) filters.umkreis = umkreis;
-  const veroeffentlichtseit = params.get('veroeffentlichtseit'); if (veroeffentlichtseit) filters.veroeffentlichtseit = veroeffentlichtseit;
-  const angebotsart = params.get('angebotsart'); if (angebotsart) filters.angebotsart = angebotsart;
-  const befristung = params.get('befristung'); if (befristung) filters.befristung = befristung;
-  const berufsfeld = params.get('berufsfeld'); if (berufsfeld) filters.berufsfeld = berufsfeld;
-  const arbeitgeber = params.get('arbeitgeber'); if (arbeitgeber) filters.arbeitgeber = arbeitgeber;
-  const zeitarbeit = params.get('zeitarbeit'); if (zeitarbeit) filters.zeitarbeit = zeitarbeit;
-  const pav = params.get('pav'); if (pav) filters.pav = pav;
-  const behinderung = params.get('behinderung'); if (behinderung) filters.behinderung = behinderung;
-  const ausbildungsart = params.get('ausbildungsart'); if (ausbildungsart) filters.ausbildungsart = ausbildungsart;
+  const extract = (key: keyof JobFilters) => {
+    const val = params.get(key);
+    if (val) (filters as any)[key] = val;
+  }
+  
+  extract('was');
+  extract('wo');
+  extract('umkreis');
+  extract('veroeffentlichtseit');
+  extract('angebotsart');
+  extract('befristung');
+  extract('berufsfeld');
+  extract('arbeitgeber');
+  extract('zeitarbeit');
+  extract('pav');
+  extract('behinderung');
+  extract('ausbildungsart');
+
   const arbeitszeit = params.get('arbeitszeit');
   if (arbeitszeit) {
     filters.arbeitszeit = arbeitszeit.split(';');
@@ -61,115 +69,69 @@ function parseInitialFilters(): JobFilters {
 }
 
 export default function SearchPage({ onSelectJob }: SearchPageProps) {
-  const initialFilters = parseInitialFilters();
-
-  const [filters, setFilters] = useState<JobFilters>(initialFilters);
-  const [results, setResults] = useState<JobSearchItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastQuery, setLastQuery] = useState<JobFilters>(initialFilters);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const executeSearch = useCallback(async (currentFilters: JobFilters, isLoadMore = false) => {
-    const targetPage = isLoadMore ? page + 1 : 1;
-    
-    if (isLoadMore) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setSearched(true);
-      setPage(1);
-      setLastQuery(currentFilters);
-      pushSearchParams(currentFilters);
-    }
-    
-    setError(null);
-
-    try {
-      const data = await searchAusbildungen(currentFilters, targetPage);
-      if (isLoadMore) {
-        setResults((prev) => [...prev, ...(data.stellenangebote || [])]);
-        setPage(targetPage);
-      } else {
-        setResults(data.stellenangebote || []);
-        setTotal(data.maxErgebnisse || 0);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
-      if (!isLoadMore) {
-        setResults([]);
-        setTotal(0);
-      }
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [page]);
-
-  const handleSearch = useCallback((was: string, wo: string) => {
-    const updatedFilters = { ...filters, was, wo };
-    setFilters(updatedFilters);
-    executeSearch(updatedFilters);
-  }, [filters, executeSearch]);
-
-  const handleFilterChange = useCallback((newFilters: JobFilters) => {
-    setFilters(newFilters);
-    executeSearch(newFilters);
-  }, [executeSearch]);
-
-  const handleFilterReset = useCallback(() => {
-    const resetFilters: JobFilters = { was: filters.was, wo: filters.wo };
-    setFilters(resetFilters);
-    executeSearch(resetFilters);
-  }, [filters.was, filters.wo, executeSearch]);
-
-  const handleRemoveFilter = useCallback((key: keyof JobFilters, value?: string) => {
-    setFilters(prev => {
-      const updated = { ...prev };
-      if (key === 'arbeitszeit' && value && Array.isArray(updated.arbeitszeit)) {
-        updated.arbeitszeit = updated.arbeitszeit.filter(v => v !== value);
-        if (updated.arbeitszeit.length === 0) {
-          delete updated.arbeitszeit;
-        }
-      } else {
-        delete updated[key];
-        if (key === 'angebotsart') {
-          delete updated.ausbildungsart;
-        }
-      }
-      executeSearch(updated);
-      return updated;
-    });
-  }, [executeSearch]);
-
-  const handleClearAllFilters = useCallback(() => {
-    const cleared: JobFilters = {};
-    setFilters(cleared);
-    executeSearch(cleared);
-  }, [executeSearch]);
-
-  const handleLoadMore = useCallback(() => {
-    executeSearch(lastQuery, true);
-  }, [executeSearch, lastQuery]);
+  // UX UX: Bind all filtering logic to a persistent Zustand store
+  const { filters, setFilters, updateFilter, removeFilter, clearFilters, isSidebarOpen, setSidebarOpen } = useSearchStore();
 
   useEffect(() => {
-    executeSearch(initialFilters);
+    // Only attempt to hydrate filters from query params if there isn't an active search
+    const parsed = parseInitialFilters();
+    if (Object.keys(parsed).length > 0 && Object.keys(filters).length === 0) {
+      setFilters(parsed);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const hasMore = results.length < total;
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isFetched,
+  } = useInfiniteQuery({
+    queryKey: ['jobs', filters],
+    queryFn: async ({ pageParam = 1 }) => {
+      pushSearchParams(filters);
+      return searchAusbildungen(filters, pageParam);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.reduce((acc, page) => acc + (page.stellenangebote?.length || 0), 0);
+      if (loadedCount < (lastPage.maxErgebnisse || 0)) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000, // UX: Cache search results for 5 minutes
+  });
+
+  const results = data ? data.pages.flatMap(p => p.stellenangebote || []) : [];
+  const total = data?.pages[0]?.maxErgebnisse || 0;
+  const isLoading = isFetching && !isFetchingNextPage;
+
+  const handleSearch = useCallback((was: string, wo: string) => {
+    updateFilter('was', was);
+    updateFilter('wo', wo);
+  }, [updateFilter]);
+
+  const handleFilterChange = useCallback((newFilters: JobFilters) => {
+    setFilters(newFilters);
+  }, [setFilters]);
+
+  const handleFilterReset = useCallback(() => {
+    setFilters({ was: filters.was, wo: filters.wo });
+  }, [filters.was, filters.wo, setFilters]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, fetchNextPage]);
 
   // Apply Client-Side Filters
   const displayedResults = results.filter((job) => {
     if (filters.ausbildungsart) {
-      // Very naive check: 'ausbildungsart' might not always be returned in the search payload
-      // depending on the API. If it is returned, this works.
-      // E.g., if JobDetail has it, it might also appear in `job`.
-      // Fallback: Check if the title mentions it as a workaround if the API payload misses it
       const typeMatches = job.ausbildungsart === filters.ausbildungsart;
       const titleMatches = (job.titel || '').toLowerCase().includes(filters.ausbildungsart.toLowerCase());
       return typeMatches || titleMatches;
@@ -190,7 +152,7 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
           </p>
           <SearchBar
             onSearch={handleSearch}
-            loading={loading}
+            loading={isLoading}
             initialWas={filters.was || ''}
             initialWo={filters.wo || ''}
           />
@@ -205,31 +167,31 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
           onChange={handleFilterChange}
           onReset={handleFilterReset}
           isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+          onClose={() => setSidebarOpen(false)}
           totalResults={total}
         />
 
         <div className="results-content">
           <ActiveFilters 
             filters={filters} 
-            onRemove={handleRemoveFilter} 
-            onClearAll={handleClearAllFilters} 
+            onRemove={removeFilter} 
+            onClearAll={clearFilters} 
           />
 
           <div className="results-header">
-            <button className="toggle-filters-btn" onClick={() => setIsSidebarOpen(true)}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              Filter ({Object.keys(filters).length - (filters.was ? 1 : 0) - (filters.wo ? 1 : 0) > 0 ? Object.keys(filters).length - (filters.was ? 1 : 0) - (filters.wo ? 1 : 0) : ''})
-            </button>
-            {searched && !loading && (
+            {isFetched && !isLoading && (
               <h2>
                 {total > 0
                   ? <><span className="gradient-text">{total.toLocaleString('de-DE')}</span> Ergebnisse gefunden</>
                   : 'Keine Ergebnisse gefunden'}
               </h2>
             )}
+            <button className="toggle-filters-btn" onClick={() => setSidebarOpen(true)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              Filter ({Object.keys(filters).length - (filters.was ? 1 : 0) - (filters.wo ? 1 : 0) > 0 ? Object.keys(filters).length - (filters.was ? 1 : 0) - (filters.wo ? 1 : 0) : ''})
+            </button>
           </div>
 
         {error && (
@@ -239,18 +201,18 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
               <line x1="15" y1="9" x2="9" y2="15" />
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
-            {error}
+            {(error as Error).message || 'Ein Fehler ist aufgetreten'}
           </div>
         )}
 
-        {loading && (
+        {isLoading && (
           <div className="loading-container">
             <div className="spinner" />
             <p>Suche Ausbildungsplätze...</p>
           </div>
         )}
 
-        {!loading && displayedResults.length > 0 && (
+        {!isLoading && displayedResults.length > 0 && (
           <div className="results-grid">
             {displayedResults.map((job) => (
               <JobCard key={job.refnr} job={job} onClick={() => onSelectJob(job.refnr)} />
@@ -258,7 +220,7 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
           </div>
         )}
 
-        {!loading && searched && displayedResults.length === 0 && !error && (
+        {!isLoading && isFetched && displayedResults.length === 0 && !error && (
           <div className="empty-state">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -270,10 +232,10 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
           </div>
         )}
 
-        {!loading && hasMore && (
+        {!isLoading && hasNextPage && (
           <div className="load-more-container">
-            <button className="load-more-btn" onClick={handleLoadMore} disabled={loadingMore}>
-              {loadingMore ? <span className="spinner-small" /> : 'Mehr laden'}
+            <button className="load-more-btn" onClick={handleLoadMore} disabled={isFetchingNextPage}>
+              {isFetchingNextPage ? <span className="spinner-small" /> : 'Mehr laden'}
             </button>
           </div>
         )}

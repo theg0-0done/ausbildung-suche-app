@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { JobDetail } from '../types';
 import { fetchJobDetail, getJobUrl, getLogoUrl } from '../api';
+import { useAuth } from '../contexts/AuthContext';
+import { favoritesApi, historyApi } from '../userApi';
 import DetailSection from '../components/DetailSection';
 import MetadataGrid from '../components/MetadataGrid';
 import RichContentRenderer from '../components/RichContentRenderer';
@@ -69,6 +71,9 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
+  
+  const { user } = useAuth();
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +141,57 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
   const education = d.geforderterBildungsabschluss
     ? BILDUNGSABSCHLUSS_MAP[d.geforderterBildungsabschluss] || d.geforderterBildungsabschluss
     : undefined;
+
+  // Try to find the external apply link
+  const bewerbungsUrl = typeof d.externeUrl === 'string' ? d.externeUrl : 
+                        typeof d.externeURL === 'string' ? d.externeURL : 
+                        typeof d.allianzpartnerUrl === 'string' ? d.allianzpartnerUrl : 
+                        jobUrl;
+
+  useEffect(() => {
+    // Add to history once the detail implies a successful load
+    if (user && detail?.referenznummer) {
+      historyApi.addHistoryObject({
+        refnr: String(detail.referenznummer || refnr),
+        title: String(detail.stellenangebotsTitel || title || ''),
+        employer: String(detail.firma || employer || ''),
+      }).catch(console.error);
+    }
+  }, [user, detail, title, employer]);
+
+  useEffect(() => {
+    // Check if favorite
+    if (user && refnr) {
+      favoritesApi.checkFavorite(refnr)
+        .then(res => setIsFavorite(res.isFavorite))
+        .catch(console.error);
+    }
+  }, [user, refnr]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      alert('Bitte melde dich an, um Favoriten zu speichern.');
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        await favoritesApi.removeFavorite(refnr);
+        setIsFavorite(false);
+      } else {
+        await favoritesApi.addFavorite({
+          refnr: refnr,
+          title: title || '',
+          employer: employer || '',
+          location: locationStr || '',
+        });
+        setIsFavorite(true);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Aktion fehlgeschlagen');
+    }
+  };
 
   // Loading state – show skeleton
   if (loading) {
@@ -216,9 +272,20 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
                 {employer?.charAt(0)?.toUpperCase() || '?'}
               </div>
             )}
+            <button 
+              className={`favorite-btn large ${isFavorite ? 'active' : ''}`}
+              onClick={toggleFavorite}
+              aria-label={isFavorite ? 'Von Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+              </svg>
+            </button>
           </div>
           <div className="detail-header-info">
-            <h1>{title}</h1>
+            <div className="detail-header-top">
+              <h1>{title}</h1>
+            </div>
             {employer && <p className="detail-company">{employer}</p>}
             {/* Meta info removed from header and moved to tags row below */}
           </div>
@@ -310,7 +377,7 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </a>
-          <a href={jobUrl} target="_blank" rel="noopener noreferrer" className="external-link-btn">
+          <a href={bewerbungsUrl} target="_blank" rel="noopener noreferrer" className="external-link-btn">
             Jetzt bewerben
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />

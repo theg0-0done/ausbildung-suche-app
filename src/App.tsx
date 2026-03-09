@@ -1,42 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrowserRouter, Routes, Route, useNavigate, useSearchParams, useLocation, Navigate } from 'react-router-dom';
 import SearchPage from './pages/SearchPage';
 import DetailPage from './pages/DetailPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { FavoritesPage } from './pages/FavoritesPage';
+import { HistoryPage } from './pages/HistoryPage';
+import { BottomNav } from './components/BottomNav';
+import { SplashScreen } from './pages/SplashScreen';
+import { AuthPage } from './pages/AuthPage';
 
-/** Read the refnr query param from the current URL */
-function getRefnrFromUrl(): string {
-  return new URLSearchParams(window.location.search).get('refnr') ?? '';
-}
+const HIDDEN_NAV_ROUTES = ['/auth', '/splash'];
 
-export default function App() {
-  const [activeRefnr, setActiveRefnr] = useState(getRefnrFromUrl);
-
-  // Listen for browser back/forward
-  useEffect(() => {
-    const onPop = () => setActiveRefnr(getRefnrFromUrl());
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
-
-  const navigateToDetail = useCallback((refnr: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('refnr', refnr); // preserve other params
-    window.history.pushState({}, '', url);
-    setActiveRefnr(refnr);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const navigateToSearch = useCallback(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('refnr'); // just remove refnr, keep filters
-    window.history.pushState({}, '', url);
-    setActiveRefnr('');
-  }, []);
+function MainApp() {
+  const {} = useAuth();
+  const navigate = useNavigate();
+   const location = useLocation();
+  const showNav = !HIDDEN_NAV_ROUTES.includes(location.pathname);
 
   return (
     <div className="app">
-      {/* Navbar */}
-      <nav className="navbar">
-        <a href="/" className="navbar-brand" onClick={(e) => { e.preventDefault(); navigateToSearch(); }}>
+      {/* Navbar - Kept strictly for the header, not routing logic */}
+      {showNav && <nav className="navbar">
+        <a href="/" className="navbar-brand" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#navGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <defs>
               <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -49,13 +34,46 @@ export default function App() {
           </svg>
           <span>Ausbildungs<span className="gradient-text">Suche</span></span>
         </a>
-      </nav>
+      </nav>}
 
-      {/* Page Content */}
-      {activeRefnr && <DetailPage refnr={activeRefnr} onBack={navigateToSearch} />}
-      <div style={{ display: activeRefnr ? 'none' : 'block' }}>
-        <SearchPage onSelectJob={navigateToDetail} />
+      {/* Main Content Area */}
+      <div className="page-content">
+        <Routes>
+          {/* Splash acts as the entry point */}
+          <Route path="/" element={<SplashScreen />} />
+          <Route path="/home" element={<SearchPageWrapper />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
+
+      <BottomNav />
     </div>
+  );
+}
+
+// Wrapper for the Search page to handle the `refnr` detail overlay logic
+function SearchPageWrapper() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeRefnr = searchParams.get('refnr');
+
+  if (activeRefnr) {
+    return <DetailPage refnr={activeRefnr} onBack={() => { searchParams.delete('refnr'); setSearchParams(searchParams); }} />;
+  }
+
+  return <SearchPage onSelectJob={(refnr) => setSearchParams({ refnr })} />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <MainApp />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AusbildungsSuche</string>
+    <string name="title_activity_main">AusbildungsSuche</string>
+    <string name="package_name">com.ausbildungsuche.app</string>
+    <string name="custom_url_scheme">com.ausbildungsuche.app</string>
+</resources>

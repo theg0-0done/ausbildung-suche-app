@@ -1,6 +1,33 @@
 import type { SearchResponse, JobDetail, JobFilters } from './types';
 
-const PROXY_BASE = '/api/jobboerse/jobsuche-service';
+/**
+ * Determine the correct API base URL.
+ * - In development (Vite dev server): use '/api' which is proxied by vite.config.ts
+ * - In production web (Netlify): use '/api' which is proxied by the Netlify edge function
+ * - In Capacitor native app: use the deployed Netlify URL directly
+ */
+function getApiBase(): string {
+  // Check if running inside a Capacitor native shell
+  const isNative =
+    typeof window !== 'undefined' &&
+    (window as unknown as Record<string, unknown>).Capacitor &&
+    ((window as unknown as Record<string, { isNativePlatform?: () => boolean }>).Capacitor
+      ?.isNativePlatform?.() ?? false);
+
+  if (isNative) {
+    // IMPORTANT: Replace this with your actual Netlify deployment URL
+    // e.g. 'https://your-app.netlify.app/api'
+    // For now we'll use a configurable env variable or fallback
+    const deployedUrl = (import.meta as unknown as { env?: Record<string, string> }).env
+      ?.VITE_API_BASE_URL;
+    return deployedUrl || 'https://ausbildung-suche.netlify.app/api';
+  }
+
+  return '/api';
+}
+
+const API_BASE = getApiBase();
+const PROXY_BASE = `${API_BASE}/jobboerse/jobsuche-service`;
 
 /**
  * Search for Ausbildung (apprenticeship) offers using full filters.
@@ -63,10 +90,10 @@ export async function fetchJobDetail(refnr: string): Promise<JobDetail> {
 
 /**
  * Builds the employer logo URL from the kundennummerHash.
- * Uses the ag-darstellung-service via the Vite proxy.
+ * Uses the ag-darstellung-service via the proxy.
  */
 export function getLogoUrl(hash: string): string {
-  return `/api/vermittlung/ag-darstellung-service/ct/v1/arbeitgeberlogo/${encodeURIComponent(hash)}`;
+  return `${API_BASE}/vermittlung/ag-darstellung-service/ct/v1/arbeitgeberlogo/${encodeURIComponent(hash)}`;
 }
 
 /**
