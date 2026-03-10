@@ -6,18 +6,23 @@
 import { isNativePlatform } from "./utils/platform";
 
 const getBackendBase = () => {
-  if (import.meta.env.VITE_BACKEND_URL) {
+  // If explicitly set, use it. But in a production build, ignore a localhost URL.
+  if (
+    import.meta.env.VITE_BACKEND_URL &&
+    !(
+      import.meta.env.PROD &&
+      import.meta.env.VITE_BACKEND_URL.includes("localhost")
+    )
+  ) {
     return import.meta.env.VITE_BACKEND_URL;
   }
 
-  if (isNativePlatform()) {
+  if (isNativePlatform() || import.meta.env.PROD) {
     return "https://ausbildung-suche-backend.onrender.com";
   }
 
-  // If in browser dev mode, use the current host so local network mobile testing works.
-  return import.meta.env.DEV
-    ? `http://${window.location.hostname}:3001`
-    : "/backend";
+  // Use current dev server hostname so testing on local network works.
+  return `http://${window.location.hostname}:3001`;
 };
 
 export const BACKEND_URL = getBackendBase();
