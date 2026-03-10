@@ -35,15 +35,6 @@ function formatCurrency(n?: number) {
   return `${n.toLocaleString("de-DE")} €`;
 }
 
-const BILDUNGSABSCHLUSS_MAP: Record<string, string> = {
-  HAUPTSCHULABSCHLUSS: "Hauptschulabschluss",
-  MITTLERE_REIFE_MITTLERER_BILDUNGSABSCHLUSS: "Mittlere Reife",
-  FACHHOCHSCHULREIFE: "Fachhochschulreife",
-  ABITUR: "Abitur",
-  OHNE: "Kein Abschluss erforderlich",
-  BELIEBIG: "Beliebig",
-};
-
 const VERGUETUNG_MAP: Record<string, string> = {
   AUSBILDUNGSVERGUETUNG_NACH_JAHREN: "Nach Lehrjahr gestaffelt",
   KEINE_ANGABEN: "Keine Angaben",

@@ -86,7 +86,6 @@ export default function SearchPage({ onSelectJob }: SearchPageProps) {
     setFilters,
     updateFilter,
     removeFilter,
-    clearFilters,
     isSidebarOpen,
     setSidebarOpen,
   } = useSearchStore();
