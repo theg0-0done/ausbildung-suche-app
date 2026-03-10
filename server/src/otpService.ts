@@ -1,27 +1,30 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || '');
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const resend = new Resend(process.env.RESEND_API_KEY || "");
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
 // ── In-memory OTP store ───────────────────────────────
 interface OtpEntry {
   code: string;
   expiresAt: number;
-  purpose: 'register' | 'reset';
+  purpose: "register" | "reset";
   verified: boolean;
 }
 
 const otpStore = new Map<string, OtpEntry>();
 
 // Clean up expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of otpStore) {
-    if (now > entry.expiresAt) {
-      otpStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of otpStore) {
+      if (now > entry.expiresAt) {
+        otpStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000,
+);
 
 /**
  * Generate a 4-digit OTP code
@@ -42,7 +45,7 @@ function storeKey(email: string, purpose: string): string {
  */
 export async function sendOtp(
   email: string,
-  purpose: 'register' | 'reset'
+  purpose: "register" | "reset",
 ): Promise<{ success: boolean; error?: string }> {
   const code = generateCode();
   const key = storeKey(email, purpose);
@@ -56,8 +59,8 @@ export async function sendOtp(
   });
 
   const subjectMap = {
-    register: 'Dein Bestätigungscode für AusbildungSuche',
-    reset: 'Passwort zurücksetzen — AusbildungSuche',
+    register: "Dein Bestätigungscode für AusbildungSuche",
+    reset: "Passwort zurücksetzen — AusbildungSuche",
   };
 
   const bodyMap = {
@@ -80,7 +83,7 @@ export async function sendOtp(
   };
 
   try {
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [email],
       subject: subjectMap[purpose],
@@ -88,15 +91,25 @@ export async function sendOtp(
     });
 
     if (error) {
-      console.error('Resend error:', error);
-      return { success: false, error: 'E-Mail konnte nicht gesendet werden.' };
+      const errorMsg = `[Resend Error] ${new Date().toISOString()} - To: ${email} - Error: ${JSON.stringify(error)}\n`;
+      console.error(errorMsg);
+      try {
+        const fs = await import("fs");
+        fs.appendFileSync("email-debug.log", errorMsg);
+      } catch (fsErr) {}
+      return { success: false, error: "E-Mail konnte nicht gesendet werden." };
     }
 
     console.log(`OTP sent to ${email} for ${purpose}: ${code}`);
     return { success: true };
-  } catch (err) {
-    console.error('Resend exception:', err);
-    return { success: false, error: 'E-Mail konnte nicht gesendet werden.' };
+  } catch (err: any) {
+    const excMsg = `[Resend Exception] ${new Date().toISOString()} - To: ${email} - Exception: ${err.message || String(err)}\n`;
+    console.error(excMsg);
+    try {
+      const fs = await import("fs");
+      fs.appendFileSync("email-debug.log", excMsg);
+    } catch (fsErr) {}
+    return { success: false, error: "E-Mail konnte nicht gesendet werden." };
   }
 }
 
@@ -106,22 +119,28 @@ export async function sendOtp(
 export function verifyOtp(
   email: string,
   code: string,
-  purpose: 'register' | 'reset'
+  purpose: "register" | "reset",
 ): { valid: boolean; error?: string } {
   const key = storeKey(email, purpose);
   const entry = otpStore.get(key);
 
   if (!entry) {
-    return { valid: false, error: 'Kein Code gefunden. Bitte fordere einen neuen an.' };
+    return {
+      valid: false,
+      error: "Kein Code gefunden. Bitte fordere einen neuen an.",
+    };
   }
 
   if (Date.now() > entry.expiresAt) {
     otpStore.delete(key);
-    return { valid: false, error: 'Code ist abgelaufen. Bitte fordere einen neuen an.' };
+    return {
+      valid: false,
+      error: "Code ist abgelaufen. Bitte fordere einen neuen an.",
+    };
   }
 
   if (entry.code !== code) {
-    return { valid: false, error: 'Falscher Code. Bitte versuche es erneut.' };
+    return { valid: false, error: "Falscher Code. Bitte versuche es erneut." };
   }
 
   // Mark as verified (for reset-password flow to check later)
@@ -134,7 +153,10 @@ export function verifyOtp(
 /**
  * Check if an OTP was previously verified (used before allowing password reset)
  */
-export function isOtpVerified(email: string, purpose: 'register' | 'reset'): boolean {
+export function isOtpVerified(
+  email: string,
+  purpose: "register" | "reset",
+): boolean {
   const key = storeKey(email, purpose);
   const entry = otpStore.get(key);
   return entry?.verified === true && Date.now() <= entry.expiresAt;
@@ -143,7 +165,7 @@ export function isOtpVerified(email: string, purpose: 'register' | 'reset'): boo
 /**
  * Clear OTP entry after successful use
  */
-export function clearOtp(email: string, purpose: 'register' | 'reset'): void {
+export function clearOtp(email: string, purpose: "register" | "reset"): void {
   const key = storeKey(email, purpose);
   otpStore.delete(key);
 }

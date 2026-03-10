@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authApi } from "../userApi";
-// import { useThemeStore } from '../store/useThemeStore';
 import {
   Lock,
   User,
@@ -12,8 +11,10 @@ import {
   MapPin,
   Briefcase,
   Mail,
+  Network,
 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
+import { useNotification } from "../contexts/NotificationContext";
 import "../components/AppAuth.css";
 
 type AuthMode = "login" | "register" | "forgot-password";
@@ -21,9 +22,9 @@ type AuthMode = "login" | "register" | "forgot-password";
 export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showNotification } = useNotification();
 
   // Login Form State
   const [email, setEmail] = useState("");
@@ -42,6 +43,9 @@ export function AuthPage() {
   const [regBirthday, setRegBirthday] = useState("");
   const [regLocation, setRegLocation] = useState("");
   const [regField, setRegField] = useState("ausbildung");
+  const [bereich, setBereich] = useState("");
+  const [isGoogleReg, setIsGoogleReg] = useState(false);
+  const [googleToken, setGoogleToken] = useState("");
 
   // Forgot Password Form State (3 Steps)
   const [forgotStep, setForgotStep] = useState(1);
@@ -53,6 +57,7 @@ export function AuthPage() {
   // OTP resend cooldown
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpSending, setOtpSending] = useState(false);
+
   const startCooldown = () => {
     setResendCooldown(60);
     const interval = setInterval(() => {
@@ -73,10 +78,29 @@ export function AuthPage() {
       setIsLoading(true);
       const data = await authApi.googleLogin(credentialResponse.credential);
       if (data.token && data.user) {
-        login(data.token, data.user);
+        if (data.isNewUser) {
+          setIsGoogleReg(true);
+          setGoogleToken(data.token);
+          setRegEmail(data.user.email);
+          const [first = "", last = ""] = (data.user.displayName || "").split(
+            " ",
+          );
+          setRegFirstName(first);
+          setRegLastName(last);
+          setMode("register");
+          setRegStep(3);
+          showNotification(
+            "Google-Konto verifiziert! Bitte vervollständige dein Profil.",
+            "success",
+          );
+        } else {
+          login(data.token, data.user);
+          showNotification("Erfolgreich via Google eingeloggt!", "success");
+          navigate("/home");
+        }
       }
     } catch (err: any) {
-      setError(err.message || "Google Login fehlgeschlagen.");
+      showNotification(err.message || "Google Login fehlgeschlagen.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -85,20 +109,31 @@ export function AuthPage() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError("Bitte füllen Sie alle Felder aus.");
+      showNotification("Bitte füllen Sie alle Felder aus.", "error");
       return;
     }
-    setError("");
     setIsLoading(true);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showNotification(
+        "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        "error",
+      );
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const data = await authApi.login({ email, password });
       login(data.token, data.user);
+      showNotification("Erfolgreich eingeloggt!", "success");
       navigate("/home");
     } catch (err: any) {
-      setError(
+      showNotification(
         err.message ||
           "Login fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten.",
+        "error",
       );
     } finally {
       setIsLoading(false);
@@ -108,21 +143,40 @@ export function AuthPage() {
   const handleRegisterSubmitStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regEmail || !regPassword || !regConfirm) {
-      setError("Bitte füllen Sie alle Felder aus.");
+      showNotification("Bitte füllen Sie alle Felder aus.", "error");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(regEmail)) {
+      showNotification(
+        "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        "error",
+      );
+      return;
+    }
+    if (regPassword.length < 6) {
+      showNotification(
+        "Das Passwort muss mindestens 6 Zeichen lang sein.",
+        "error",
+      );
       return;
     }
     if (regPassword !== regConfirm) {
-      setError("Die Passwörter stimmen nicht überein.");
+      showNotification("Die Passwörter stimmen nicht überein.", "error");
       return;
     }
-    setError("");
+    if (otpSending) return;
     setOtpSending(true);
     try {
       await authApi.sendOtp(regEmail, "register");
       startCooldown();
       setRegStep(2);
+      showNotification("Bestätigungscode gesendet!", "success");
     } catch (err: any) {
-      setError(err.message || "Code konnte nicht gesendet werden.");
+      showNotification(
+        err.message || "Code konnte nicht gesendet werden.",
+        "error",
+      );
     } finally {
       setOtpSending(false);
     }
@@ -132,16 +186,16 @@ export function AuthPage() {
     e.preventDefault();
     const code = regOtp.join("");
     if (code.length !== 4) {
-      setError("Bitte geben Sie den vollständigen Code ein.");
+      showNotification("Bitte geben Sie den vollständigen Code ein.", "error");
       return;
     }
-    setError("");
     setIsLoading(true);
     try {
       await authApi.verifyOtp(regEmail, code, "register");
       setRegStep(3);
+      showNotification("Code erfolgreich verifiziert!", "success");
     } catch (err: any) {
-      setError(err.message || "Ungültiger Code.");
+      showNotification(err.message || "Ungültiger Code.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -150,12 +204,15 @@ export function AuthPage() {
   const handleResendRegOtp = async () => {
     if (resendCooldown > 0 || otpSending) return;
     setOtpSending(true);
-    setError("");
     try {
       await authApi.sendOtp(regEmail, "register");
       startCooldown();
+      showNotification("Neuer Code wurde gesendet!", "success");
     } catch (err: any) {
-      setError(err.message || "Code konnte nicht erneut gesendet werden.");
+      showNotification(
+        err.message || "Code konnte nicht erneut gesendet werden.",
+        "error",
+      );
     } finally {
       setOtpSending(false);
     }
@@ -164,53 +221,79 @@ export function AuthPage() {
   const handleRegisterSubmitStep3 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regFirstName || !regLastName) {
-      setError("Bitte geben Sie Ihren Namen an.");
+      showNotification("Bitte geben Sie Ihren Namen an.", "error");
       return;
     }
-    setError("");
     setIsLoading(true);
 
     try {
-      // Create user
+      if (isGoogleReg) {
+        // Use updateProfile with the specific googleToken
+        const updateRes = await authApi.updateProfile(
+          {
+            displayName: `${regFirstName} ${regLastName}`,
+            birthday: regBirthday,
+            bereich: bereich,
+            location: regLocation,
+            jobart: regField,
+          },
+          googleToken,
+        );
+
+        login(googleToken, updateRes.user);
+        showNotification(
+          "Willkommen! Dein Google-Konto wurde vervollständigt.",
+          "success",
+        );
+        navigate("/home");
+        return; // Prevent falling through to authApi.register()
+      }
+
       const registerData = await authApi.register({
         email: regEmail,
         password: regPassword,
-        name: `${regFirstName} ${regLastName}`,
+        displayName: `${regFirstName} ${regLastName}`,
+        birthday: regBirthday,
+        bereich: bereich,
+        location: regLocation,
+        jobart: regField,
+        theme: "dark",
       });
-      // Authenticate
       login(registerData.token, registerData.user);
-
-      // In a real app we would call updateProfile here to send the rest of the metadata
+      showNotification("Willkommen! Dein Konto wurde erstellt.", "success");
       navigate("/home");
     } catch (err: any) {
-      setError(err.message || "Registrierung fehlgeschlagen.");
+      showNotification(err.message || "Registrierung fehlgeschlagen.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Switch modes and reset state
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
-    setError("");
     setRegStep(1);
     setForgotStep(1);
+    setIsGoogleReg(false);
+    setGoogleToken("");
   };
 
   const handleForgotStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail) {
-      setError("Bitte E-Mail eingeben");
+      showNotification("Bitte E-Mail eingeben", "error");
       return;
     }
-    setError("");
     setOtpSending(true);
     try {
       await authApi.sendOtp(forgotEmail, "reset");
       startCooldown();
       setForgotStep(2);
+      showNotification("Wiederherstellungscode gesendet!", "success");
     } catch (err: any) {
-      setError(err.message || "Code konnte nicht gesendet werden.");
+      showNotification(
+        err.message || "Code konnte nicht gesendet werden.",
+        "error",
+      );
     } finally {
       setOtpSending(false);
     }
@@ -220,16 +303,15 @@ export function AuthPage() {
     e.preventDefault();
     const code = forgotOtp.join("");
     if (code.length !== 4) {
-      setError("Code füllen");
+      showNotification("Bitte Code eingeben", "error");
       return;
     }
-    setError("");
     setIsLoading(true);
     try {
       await authApi.verifyOtp(forgotEmail, code, "reset");
       setForgotStep(3);
     } catch (err: any) {
-      setError(err.message || "Ungültiger Code.");
+      showNotification(err.message || "Ungültiger Code.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -238,12 +320,15 @@ export function AuthPage() {
   const handleResendForgotOtp = async () => {
     if (resendCooldown > 0 || otpSending) return;
     setOtpSending(true);
-    setError("");
     try {
       await authApi.sendOtp(forgotEmail, "reset");
       startCooldown();
+      showNotification("Neuer Code wurde gesendet!", "success");
     } catch (err: any) {
-      setError(err.message || "Code konnte nicht erneut gesendet werden.");
+      showNotification(
+        err.message || "Code konnte nicht erneut gesendet werden.",
+        "error",
+      );
     } finally {
       setOtpSending(false);
     }
@@ -252,21 +337,26 @@ export function AuthPage() {
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (forgotNewPassword !== forgotNewPasswordConfirm) {
-      setError("Die Passwörter stimmen nicht überein.");
+      showNotification("Die Passwörter stimmen nicht überein.", "error");
       return;
     }
     if (forgotNewPassword.length < 6) {
-      setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
+      showNotification(
+        "Das Passwort muss mindestens 6 Zeichen lang sein.",
+        "error",
+      );
       return;
     }
-    setError("");
     setIsLoading(true);
     try {
       await authApi.resetPassword(forgotEmail, forgotNewPassword);
-      alert("Passwort erfolgreich geändert!");
+      showNotification("Passwort erfolgreich geändert!", "success");
       switchMode("login");
     } catch (err: any) {
-      setError(err.message || "Passwort konnte nicht geändert werden.");
+      showNotification(
+        err.message || "Passwort konnte nicht geändert werden.",
+        "error",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -275,11 +365,6 @@ export function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-header">
-        {/* {mode !== 'forgot-password' && (
-          <div className="brand-sparkle gradient-text">
-            <Sparkles size={32} strokeWidth={2} />
-          </div>
-        )} */}
         {mode !== "forgot-password" ? (
           <h2 className="auth-main-title gradient-text">AusbildungSuche</h2>
         ) : (
@@ -290,25 +375,6 @@ export function AuthPage() {
       </div>
 
       <div className="auth-card">
-        {error && (
-          <div className="error-banner" style={{ marginBottom: "1.5rem" }}>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        {/* Toggle between Login and Register if not in Forgot Password mode */}
         {mode !== "forgot-password" && (
           <div className="segmented-control">
             <button
@@ -328,7 +394,6 @@ export function AuthPage() {
           </div>
         )}
 
-        {/* =============== LOGIN FORM =============== */}
         {mode === "login" && (
           <form onSubmit={handleLoginSubmit} className="auth-form clean-form">
             <div className="form-group clean">
@@ -340,6 +405,7 @@ export function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                autoComplete="email"
                 required
               />
             </div>
@@ -386,7 +452,6 @@ export function AuthPage() {
           </form>
         )}
 
-        {/* =============== REGISTER FORM =============== */}
         {mode === "register" && (
           <div className="auth-steps-container">
             <div className="step-indicator">
@@ -395,7 +460,6 @@ export function AuthPage() {
               <div className={`step-dot ${regStep === 3 ? "active" : ""}`} />
             </div>
 
-            {/* Step 1: Account Access Info */}
             {regStep === 1 && (
               <form
                 onSubmit={handleRegisterSubmitStep1}
@@ -408,6 +472,7 @@ export function AuthPage() {
                     placeholder="Your email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -458,7 +523,6 @@ export function AuthPage() {
               </form>
             )}
 
-            {/* Step 2: Email Validation (Simulated) */}
             {regStep === 2 && (
               <form
                 onSubmit={handleRegisterSubmitStep2}
@@ -518,6 +582,7 @@ export function AuthPage() {
                     textAlign: "center",
                     marginTop: "1rem",
                     display: "flex",
+                    flexDirection: "column",
                     justifyContent: "center",
                     gap: "1rem",
                   }}
@@ -543,7 +608,6 @@ export function AuthPage() {
               </form>
             )}
 
-            {/* Step 3: Profile Details */}
             {regStep === 3 && (
               <form
                 onSubmit={handleRegisterSubmitStep3}
@@ -561,6 +625,7 @@ export function AuthPage() {
                       placeholder="Max"
                       value={regFirstName}
                       onChange={(e) => setRegFirstName(e.target.value)}
+                      autoComplete="given-name"
                       required
                     />
                   </div>
@@ -574,7 +639,36 @@ export function AuthPage() {
                       placeholder="Mustermann"
                       value={regLastName}
                       onChange={(e) => setRegLastName(e.target.value)}
+                      autoComplete="family-name"
                       required
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Ich suche nach...</label>
+                  <div className="input-with-icon">
+                    <Briefcase className="input-icon" size={20} />
+                    <select
+                      value={regField}
+                      onChange={(e) => setRegField(e.target.value)}
+                      disabled={isLoading}
+                    >
+                      <option value="ausbildung">Ausbildung</option>
+                      <option value="dual_study">Duales Studium</option>
+                      <option value="praktikum">Praktikum</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Bereich</label>
+                  <div className="input-with-icon">
+                    <Network className="input-icon" size={20} />
+                    <input
+                      type="text"
+                      value={bereich}
+                      onChange={(e) => setBereich(e.target.value)}
+                      placeholder="z.B. Pflege Fackmann..."
                     />
                   </div>
                 </div>
@@ -586,6 +680,7 @@ export function AuthPage() {
                       type="date"
                       value={regBirthday}
                       onChange={(e) => setRegBirthday(e.target.value)}
+                      autoComplete="bday"
                     />
                   </div>
                 </div>
@@ -601,20 +696,7 @@ export function AuthPage() {
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Ich suche nach...</label>
-                  <div className="input-with-icon">
-                    <Briefcase className="input-icon" size={20} />
-                    <select
-                      value={regField}
-                      onChange={(e) => setRegField(e.target.value)}
-                    >
-                      <option value="ausbildung">Ausbildung</option>
-                      <option value="dual_study">Duales Studium</option>
-                      <option value="praktikum">Praktikum</option>
-                    </select>
-                  </div>
-                </div>
+
                 <button
                   type="submit"
                   className="black-btn"
@@ -637,19 +719,20 @@ export function AuthPage() {
             <div className="login-btn">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => setError("Google Login fehlgeschlagen.")}
+                onError={() =>
+                  showNotification("Google Login fehlgeschlagen.", "error")
+                }
                 type="standard"
                 theme="outline"
                 size="large"
                 shape="rectangular"
                 text="signin_with"
-                width="100%"
+                use_fedcm_for_prompt={true}
               />
             </div>
           </div>
         )}
 
-        {/* =============== FORGOT PASSWORD FORM =============== */}
         {mode === "forgot-password" && (
           <div className="auth-steps-container">
             <h2 style={{ textAlign: "center", marginBottom: "1.5rem" }}>
@@ -684,6 +767,7 @@ export function AuthPage() {
                       placeholder="mail@beispiel.de"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -834,7 +918,7 @@ export function AuthPage() {
                   className="solid black-btn"
                   style={{ width: "100%", marginTop: "1rem" }}
                 >
-                  Passw ort speichern
+                  Passwort speichern
                 </button>
               </form>
             )}

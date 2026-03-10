@@ -1,10 +1,22 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authApi } from '../userApi';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { authApi } from "../userApi";
 
 export interface User {
   id: number;
   email: string;
   displayName: string;
+  location?: string;
+  birthday?: string;
+  bereich?: string;
+  jobart?: string;
+  theme?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -19,7 +31,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("auth_token"),
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,33 +44,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // If we already have a user in memory (e.g. just logged in via login function),
+      // we don't need to fetch getMe again immediately.
+      if (user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const data = await authApi.getMe();
         setUser(data.user);
       } catch (err) {
         // Token invalid or expired
-        console.error('Session expired or invalid:', err);
+        console.error("Session expired or invalid:", err);
         setToken(null);
         setUser(null);
-        localStorage.removeItem('auth_token');
+        localStorage.removeItem("auth_token");
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, [token]);
+  }, [token, user]); // Added user to dependencies so it can check if already set
 
   const login = (newToken: string, userData: User) => {
+    localStorage.setItem("auth_token", newToken);
     setToken(newToken);
     setUser(userData);
-    localStorage.setItem('auth_token', newToken);
+    setIsLoading(false); // Ensure loading is false right after manual login
   };
 
   const logout = () => {
+    localStorage.removeItem("auth_token");
     setToken(null);
     setUser(null);
-    localStorage.removeItem('auth_token');
   };
 
   return (
@@ -69,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -1,7 +1,10 @@
-import type { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-fallback-secret';
+const JWT_SECRET = process.env.JWT_SECRET || "dev-fallback-secret";
+console.log(
+  `[Auth] JWT_SECRET loaded. Length: ${JWT_SECRET.length}. Using fallback: ${JWT_SECRET === "dev-fallback-secret"}`,
+);
 
 export interface AuthPayload {
   userId: number;
@@ -21,17 +24,22 @@ declare global {
  * Generate a JWT token for a user.
  */
 export function generateToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
 }
 
 /**
  * Middleware: require a valid JWT in the Authorization header.
  * Sets req.user on success.
  */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Nicht autorisiert. Bitte melde dich an.' });
+  if (!header || !header.startsWith("Bearer ")) {
+    console.log("[Auth] No bearer token in header");
+    res.status(401).json({ error: "Nicht autorisiert. Bitte melde dich an." });
     return;
   }
 
@@ -40,8 +48,9 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;
     req.user = decoded;
     next();
-  } catch {
-    res.status(401).json({ error: 'Token ungültig oder abgelaufen.' });
+  } catch (err: any) {
+    console.error("[Auth] Token verification failed:", err.message);
+    res.status(401).json({ error: "Token ungültig oder abgelaufen." });
   }
 }
 
@@ -49,9 +58,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
  * Optional auth middleware: sets req.user if a valid token is present,
  * but does not reject the request if no token is provided.
  */
-export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+export function optionalAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
   const header = req.headers.authorization;
-  if (header && header.startsWith('Bearer ')) {
+  if (header && header.startsWith("Bearer ")) {
     const token = header.slice(7);
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as AuthPayload;

@@ -1,5 +1,10 @@
-import { useState } from 'react';
-import type { JobFilters } from '../types';
+import { useState } from "react";
+import type { JobFilters } from "../types";
+import {
+  ANGEBOTSART_OPTIONS,
+  ARBEITSZEIT_OPTIONS,
+  VEROEFFENTLICHT_OPTIONS,
+} from "../constants/filters";
 
 interface FilterSidebarProps {
   filters: JobFilters;
@@ -10,35 +15,34 @@ interface FilterSidebarProps {
   totalResults: number;
 }
 
-const ANGEBOTSART_OPTIONS = [
-  { value: '1', label: 'Arbeit' },
-  { value: '2', label: 'Selbständigkeit' },
-  { value: '4', label: 'Ausbildung / Duales Studium' },
-  { value: '34', label: 'Praktikum / Trainee' },
-];
-
-const ARBEITSZEIT_OPTIONS = [
-  { value: 'vz', label: 'Vollzeit' },
-  { value: 'tz', label: 'Teilzeit' },
-  { value: 'snw', label: 'Schicht / Nacht / Wochenende' },
-  { value: 'ho', label: 'Heim- / Telearbeit' },
-  { value: 'mj', label: 'Minijob' },
-];
-
-const VEROEFFENTLICHT_OPTIONS = [
-  { value: '', label: 'Beliebig' },
-  { value: '1', label: 'Seit 24 Stunden' },
-  { value: '7', label: 'Seit 7 Tagen' },
-  { value: '30', label: 'Seit 30 Tagen' },
-];
-
-function Accordion({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function Accordion({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className={`filter-accordion ${isOpen ? 'open' : ''}`}>
-      <button type="button" className="filter-accordion-header" onClick={() => setIsOpen(!isOpen)}>
+    <div className={`filter-accordion ${isOpen ? "open" : ""}`}>
+      <button
+        type="button"
+        className="filter-accordion-header"
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <span>{title}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -47,7 +51,14 @@ function Accordion({ title, defaultOpen = true, children }: { title: string; def
   );
 }
 
-export default function FilterSidebar({ filters, onChange, onReset, isOpen, onClose, totalResults }: FilterSidebarProps) {
+export default function FilterSidebar({
+  filters,
+  onChange,
+  onReset,
+  isOpen,
+  onClose,
+  totalResults,
+}: FilterSidebarProps) {
   const handleArbeitszeitToggle = (value: string) => {
     const current = filters.arbeitszeit || [];
     const updated = current.includes(value)
@@ -63,13 +74,27 @@ export default function FilterSidebar({ filters, onChange, onReset, isOpen, onCl
   return (
     <>
       {/* Mobile Backdrop */}
-      <div className={`filter-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose} />
+      <div
+        className={`filter-backdrop ${isOpen ? "open" : ""}`}
+        onClick={onClose}
+      />
 
-      <aside className={`filter-sidebar ${isOpen ? 'open' : ''}`}>
+      <aside className={`filter-sidebar ${isOpen ? "open" : ""}`}>
         <div className="filter-sidebar-header">
           <h3>Filter</h3>
-          <button className="close-filters-btn" onClick={onClose} aria-label="Filter schließen">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            className="close-filters-btn"
+            onClick={onClose}
+            aria-label="Filter schließen"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -85,11 +110,15 @@ export default function FilterSidebar({ filters, onChange, onReset, isOpen, onCl
                     type="radio"
                     name="angebotsart"
                     value={opt.value}
-                    checked={(filters.angebotsart || '4') === opt.value}
+                    checked={(filters.angebotsart || "4") === opt.value}
                     onChange={(e) => {
                       const newAngebotsart = e.target.value;
-                      if (newAngebotsart !== '4') {
-                        onChange({ ...filters, angebotsart: newAngebotsart, ausbildungsart: undefined });
+                      if (newAngebotsart !== "4") {
+                        onChange({
+                          ...filters,
+                          angebotsart: newAngebotsart,
+                          ausbildungsart: undefined,
+                        });
                       } else {
                         onChange({ ...filters, angebotsart: newAngebotsart });
                       }
@@ -109,8 +138,10 @@ export default function FilterSidebar({ filters, onChange, onReset, isOpen, onCl
                     type="radio"
                     name="veroeffentlichtseit"
                     value={opt.value}
-                    checked={(filters.veroeffentlichtseit || '') === opt.value}
-                    onChange={(e) => handleSimpleChange('veroeffentlichtseit', e.target.value)}
+                    checked={(filters.veroeffentlichtseit || "") === opt.value}
+                    onChange={(e) =>
+                      handleSimpleChange("veroeffentlichtseit", e.target.value)
+                    }
                   />
                   <span>{opt.label}</span>
                 </label>
@@ -137,8 +168,8 @@ export default function FilterSidebar({ filters, onChange, onReset, isOpen, onCl
             <div className="filter-field">
               <label>Umkreis (km)</label>
               <select
-                value={filters.umkreis || ''}
-                onChange={(e) => handleSimpleChange('umkreis', e.target.value)}
+                value={filters.umkreis || ""}
+                onChange={(e) => handleSimpleChange("umkreis", e.target.value)}
                 className="filter-select"
               >
                 <option value="">Ganz Deutschland</option>

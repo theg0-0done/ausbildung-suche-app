@@ -40,12 +40,13 @@ router.post("/google", async (req: Request, res: Response) => {
     // Check if user exists in Supabase
     let { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, email, display_name")
+      .select(
+        "id, email, display_name, location, birthday, bereich, jobart, theme, created_at",
+      )
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
-    if (userError && userError.code !== "PGRST116") {
-      // PGRST116 means no rows found
+    if (userError) {
       console.error("Database error checking user:", userError);
       res.status(500).json({ error: "DB-Error: " + userError.message });
       return;
@@ -54,8 +55,15 @@ router.post("/google", async (req: Request, res: Response) => {
     if (!user) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
-        .insert([{ email, password_hash: null, display_name: displayName }])
-        .select("id, email, display_name")
+        .insert([
+          {
+            email,
+            password_hash: null,
+            display_name: displayName,
+            theme: "dark",
+          },
+        ])
+        .select("*")
         .single();
 
       if (insertError || !newUser) {
@@ -68,14 +76,21 @@ router.post("/google", async (req: Request, res: Response) => {
       user = newUser;
     }
 
-    const token = generateToken({ userId: user.id, email: user.email });
+    const token = generateToken({ userId: user!.id, email: user!.email });
 
     res.json({
       token,
+      isNewUser: !user.location && !user.bereich && !user.jobart,
       user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
+        id: user!.id,
+        email: user!.email,
+        displayName: user!.display_name,
+        location: user!.location,
+        birthday: user!.birthday,
+        bereich: user!.bereich,
+        jobart: user!.jobart,
+        theme: user!.theme,
+        createdAt: user!.created_at,
       },
     });
   } catch (err: any) {
@@ -89,10 +104,24 @@ router.post("/google", async (req: Request, res: Response) => {
 // ── POST /auth/register ────────────────────────────────
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { email, password, displayName } = req.body as {
+    const {
+      email,
+      password,
+      displayName,
+      birthday,
+      location,
+      bereich,
+      jobart,
+      theme,
+    } = req.body as {
       email?: string;
       password?: string;
       displayName?: string;
+      birthday?: string;
+      location?: string;
+      bereich?: string;
+      jobart?: string;
+      theme?: string;
     };
 
     if (!email || !password) {
@@ -112,7 +141,7 @@ router.post("/register", async (req: Request, res: Response) => {
       .from("users")
       .select("id")
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       res
@@ -123,20 +152,30 @@ router.post("/register", async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    const payload = {
+      email,
+      password_hash: passwordHash,
+      display_name: displayName || email.split("@")[0],
+      birthday: birthday || null,
+      location: location || null,
+      bereich: bereich || null,
+      jobart: jobart || null,
+      theme: theme || "dark",
+    };
+
+    console.log(
+      "[Register] Attempting insert with payload keys:",
+      Object.keys(payload),
+    );
+
     const { data: newUser, error: insertError } = await supabase
       .from("users")
-      .insert([
-        {
-          email,
-          password_hash: passwordHash,
-          display_name: displayName || email.split("@")[0],
-        },
-      ])
-      .select("id, email, display_name")
+      .insert([payload])
+      .select("*")
       .single();
 
     if (insertError || !newUser) {
-      console.error("Register db error:", insertError);
+      console.error("[Register] Supabase error:", insertError);
       res.status(500).json({ error: "Registrierung fehlgeschlagen." });
       return;
     }
@@ -148,8 +187,14 @@ router.post("/register", async (req: Request, res: Response) => {
       token,
       user: {
         id: userId,
-        email,
+        email: newUser.email,
         displayName: newUser.display_name,
+        location: newUser.location,
+        birthday: newUser.birthday,
+        bereich: newUser.bereich,
+        jobart: newUser.jobart,
+        theme: newUser.theme,
+        createdAt: newUser.created_at,
       },
     });
   } catch (err) {
@@ -173,22 +218,22 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, email, password_hash, display_name")
+      .select(
+        "id, email, password_hash, display_name, location, birthday, bereich, jobart, theme, created_at",
+      )
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
     if (userError || !user) {
       res.status(401).json({ error: "E-Mail oder Passwort falsch." });
       return;
     }
 
-    if (!user.password_hash || user.password_hash === "oauth-google") {
-      res
-        .status(401)
-        .json({
-          error:
-            "Dieses Konto ist mit Google verknüpft. Bitte melde dich über Google an.",
-        });
+    if (!user.password_hash) {
+      res.status(401).json({
+        error:
+          "Dieses Konto ist mit Google verknüpft. Bitte melde dich über Google an.",
+      });
       return;
     }
 
@@ -198,14 +243,20 @@ router.post("/login", async (req: Request, res: Response) => {
       return;
     }
 
-    const token = generateToken({ userId: user.id, email: user.email });
+    const token = generateToken({ userId: user!.id, email: user!.email });
 
     res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
+        id: user!.id,
+        email: user!.email,
+        displayName: user!.display_name,
+        location: user!.location,
+        birthday: user!.birthday,
+        bereich: user!.bereich,
+        jobart: user!.jobart,
+        theme: user!.theme,
+        createdAt: user!.created_at,
       },
     });
   } catch (err) {
@@ -220,10 +271,10 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
     const { data: user, error } = await supabase
       .from("users")
       .select(
-        "id, email, display_name, preferred_location, preferred_category, created_at",
+        "id, email, display_name, location, birthday, bereich, jobart, theme, created_at",
       )
       .eq("id", req.user!.userId)
-      .single();
+      .maybeSingle();
 
     if (error || !user) {
       res.status(404).json({ error: "Benutzer nicht gefunden." });
@@ -232,12 +283,15 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
 
     res.json({
       user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        preferredLocation: user.preferred_location,
-        preferredCategory: user.preferred_category, // Wait, might need underscore conversion if properties differ
-        createdAt: user.created_at,
+        id: user!.id,
+        email: user!.email,
+        displayName: user!.display_name,
+        location: user!.location,
+        birthday: user!.birthday,
+        bereich: user!.bereich,
+        jobart: user!.jobart,
+        theme: user!.theme,
+        createdAt: user!.created_at,
       },
     });
   } catch (err) {
@@ -270,7 +324,7 @@ router.post("/send-otp", async (req: Request, res: Response) => {
         .from("users")
         .select("id")
         .eq("email", email)
-        .single();
+        .maybeSingle();
       if (!existing) {
         res
           .status(404)
@@ -285,7 +339,7 @@ router.post("/send-otp", async (req: Request, res: Response) => {
         .from("users")
         .select("id")
         .eq("email", email)
-        .single();
+        .maybeSingle();
       if (existing) {
         res
           .status(409)
@@ -368,7 +422,7 @@ router.post("/reset-password", async (req: Request, res: Response) => {
       .from("users")
       .select("id")
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !user) {
       res.status(404).json({ error: "Benutzer nicht gefunden." });
@@ -380,7 +434,7 @@ router.post("/reset-password", async (req: Request, res: Response) => {
     const { error: updateError } = await supabase
       .from("users")
       .update({ password_hash: passwordHash })
-      .eq("id", user.id);
+      .eq("id", user!.id);
 
     if (updateError) {
       console.error("Update password db error:", updateError);
@@ -399,5 +453,55 @@ router.post("/reset-password", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Serverfehler." });
   }
 });
+
+// ── PATCH /auth/update-profile ──────────────────────────
+router.patch(
+  "/update-profile",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { displayName, birthday, bereich, location, jobart } = req.body;
+      const updates: any = {};
+      if (displayName !== undefined) updates.display_name = displayName;
+      if (birthday !== undefined) updates.birthday = birthday;
+      if (bereich !== undefined) updates.bereich = bereich;
+      if (location !== undefined) updates.location = location;
+      if (jobart !== undefined) updates.jobart = jobart;
+
+      const { data: user, error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("id", req.user!.userId)
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Update profile error:", error);
+        res
+          .status(500)
+          .json({ error: "Fehler beim Aktualisieren des Profils." });
+        return;
+      }
+
+      res.json({
+        message: "Profil aktualisiert.",
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.display_name,
+          location: user.location,
+          birthday: user.birthday,
+          bereich: user.bereich,
+          jobart: user.jobart,
+          theme: user.theme,
+          createdAt: user.created_at,
+        },
+      });
+    } catch (err) {
+      console.error("Patch update-profile error:", err);
+      res.status(500).json({ error: "Serverfehler." });
+    }
+  },
+);
 
 export default router;
