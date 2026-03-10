@@ -31,7 +31,7 @@ jobs:
           cd ios/App
           # We build an unsigned archive since AltStore will sign it locally anyway.
           xcodebuild clean build \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
