@@ -48,7 +48,14 @@ export function FavoritesPage() {
     }
   };
 
-  if (loading) return <div className="loading-state">Lade Favoriten...</div>;
+  if (loading) {
+    return (
+      <div className="loading-container" style={{ minHeight: "100vh", justifyContent: "center" }}>
+        <div className="spinner" />
+        <p>Lade Favoriten...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container favorites-page">

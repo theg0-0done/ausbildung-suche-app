@@ -250,10 +250,10 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
           </svg>
           Zurück zur Suche
         </button>
-        <article className="detail-card">
-          <div className="detail-loading">
+        <article className="detail-card" style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="loading-container">
             <div className="spinner" />
-            <span>Lade Anzeige…</span>
+            <p>Lade Anzeige...</p>
           </div>
         </article>
       </div>

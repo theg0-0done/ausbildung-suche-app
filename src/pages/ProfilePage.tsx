@@ -127,7 +127,14 @@ export function ProfilePage() {
     }
   };
 
-  if (loading) return <div className="loading-state">Lade Profil...</div>;
+  if (loading) {
+    return (
+      <div className="loading-container" style={{ minHeight: "100vh", justifyContent: "center" }}>
+        <div className="spinner" />
+        <p>Lade Profil...</p>
+      </div>
+    );
+  }
 
   // Unauthenticated State: Show a beautiful auth gateway
   if (!user) {

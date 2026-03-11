@@ -52,7 +52,14 @@ export function HistoryPage() {
     }
   };
 
-  if (loading) return <div className="loading-state">Lade Verlauf...</div>;
+  if (loading) {
+    return (
+      <div className="loading-container" style={{ minHeight: "100vh", justifyContent: "center" }}>
+        <div className="spinner" />
+        <p>Lade Verlauf...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container history-page">
