@@ -11,13 +11,13 @@ interface DailyEmailData {
   bereich: string;
   location: string;
   deepLinkUrl: string;
+  appBaseUrl: string;
 }
 
 export function buildDailyEmailHtml(data: DailyEmailData): string {
-  const { displayName, offerCount, bereich, location, deepLinkUrl } = data;
+  const { displayName, offerCount, bereich, appBaseUrl, deepLinkUrl } = data;
 
-  const locationText = location ? ` in ${location}` : "";
-  const headline = `${offerCount} neue Ausbildungsangebote${locationText}`;
+  const headline = `neue Ausbildungsangebote`;
   const firstName = displayName?.split(" ")[0] || "Hallo";
 
   return `
@@ -37,8 +37,9 @@ export function buildDailyEmailHtml(data: DailyEmailData): string {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 28px 16px 28px; text-align: center;">
-              <div style="font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #7c5cfc, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                AusbildungSuche
+              <div style="font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #7c5cfc, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                <img src="${appBaseUrl}/ausbildungLogo.png" alt="Logo" width="36" height="36" style="border-radius: 8px; vertical-align: middle; display: inline-block;" />
+                <span style="vertical-align: middle;">AusbildungSuche</span>
               </div>
               <div style="margin-top: 4px; font-size: 12px; color: #6b7280; letter-spacing: 1px; text-transform: uppercase;">
                 Tägliche Benachrichtigung

@@ -213,6 +213,7 @@ export async function runDailyEmailJob(): Promise<{
         bereich: user.bereich || "Alle Bereiche",
         location: user.location || "",
         deepLinkUrl,
+        appBaseUrl: APP_BASE_URL,
       });
       const subject = buildDailyEmailSubject(
         offerCount,

@@ -70,9 +70,9 @@ app.post("/admin/send-daily-emails", async (_req, res) => {
   }
 });
 
-// ── Cron: Daily email job (8:00 AM CET) ────────────────
+// ── Cron: Daily email job (11:00 AM CET) ────────────────
 cron.schedule(
-  "0 8 * * *",
+  "0 11 * * *",
   async () => {
     console.log(
       "\n⏰ [Cron] Daily email job triggered at",
@@ -93,5 +93,5 @@ cron.schedule(
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/health`);
-  console.log(`   📧 Daily email cron scheduled for 8:00 AM CET`);
+  console.log(`   📧 Daily email cron scheduled for 11:00 AM CET`);
 });

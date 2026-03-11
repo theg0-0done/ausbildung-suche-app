@@ -24,6 +24,7 @@ interface Profile {
   birthday: string;
   location: string;
   theme?: string;
+  emailNotifications?: boolean;
 }
 
 export function ProfilePage() {
@@ -47,6 +48,7 @@ export function ProfilePage() {
     jobart: "",
     birthday: "",
     location: "",
+    emailNotifications: true,
   });
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function ProfilePage() {
           jobart: profileData.jobart || "",
           birthday: profileData.birthday || "",
           location: profileData.location || "",
+          emailNotifications: profileData.emailNotifications !== false,
         });
         if (
           profileData.theme &&
@@ -99,8 +102,8 @@ export function ProfilePage() {
     }
 
     try {
-      await userApi.updateProfile(editForm);
-      setProfile({ ...profile, ...editForm });
+      await userApi.updateProfile(editForm as any);
+      if (profile) setProfile({ ...profile, ...editForm });
       setEditing(false);
       showNotification("Profil erfolgreich aktualisiert!", "success");
     } catch (err: unknown) {
@@ -124,6 +127,15 @@ export function ProfilePage() {
     const newTheme = theme === "light" ? "dark" : "light";
     if (user) {
       userApi.updateProfile({ theme: newTheme }).catch(console.error);
+    }
+  };
+
+  const handleEmailNotificationToggle = () => {
+    const newVal = !(profile?.emailNotifications !== false);
+    if (user) {
+      userApi.updateProfile({ emailNotifications: newVal }).catch(console.error);
+      if (profile) setProfile({ ...profile, emailNotifications: newVal });
+      setEditForm({ ...editForm, emailNotifications: newVal } as any);
     }
   };
 
@@ -236,6 +248,21 @@ export function ProfilePage() {
               <div className="theme-toggle-switch-native">
                 <div
                   className={`theme-toggle-knob-native ${theme === "dark" ? "active" : ""}`}
+                />
+              </div>
+            </div>
+            <div
+              className="info-row"
+              onClick={handleEmailNotificationToggle}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="info-icon">
+                <Mail size={20} />
+              </div>
+              <div className="info-label">daily emails</div>
+              <div className="theme-toggle-switch-native">
+                <div
+                  className={`theme-toggle-knob-native ${profile?.emailNotifications !== false ? "active" : ""}`}
                 />
               </div>
             </div>

@@ -101,7 +101,7 @@ export const authApi = {
 
 export const userApi = {
   getProfile: () => authFetch("/user/profile"),
-  updateProfile: (data: Record<string, string>) =>
+  updateProfile: (data: Record<string, any>) =>
     authFetch("/user/profile", { method: "PUT", body: JSON.stringify(data) }),
 };
 
