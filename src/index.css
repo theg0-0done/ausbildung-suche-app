@@ -267,7 +267,6 @@ p:last-child {
   padding-top: max(0.8rem, env(safe-area-inset-top, 0.8rem));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  background: rgba(10, 10, 26, 0.7);
   border-bottom: 1px solid var(--border-card);
 }
 
@@ -463,7 +462,12 @@ p:last-child {
   gap: 0.5rem;
   padding: 0.8rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background:  rgba(
+    168,
+    85,
+    247,
+    0.1
+  );;
   transition: background var(--transition-fast);
   min-width: 0;
 }
