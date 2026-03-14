@@ -193,7 +193,7 @@ export function ProfilePage() {
                 className="edit-profile-btn"
                 onClick={() => setEditing(true)}
               >
-                edit profile
+                Profil bearbeiten
               </button>
             </div>
           </div>
@@ -201,16 +201,16 @@ export function ProfilePage() {
           <div className="profile-stats-row">
             <div className="stat-box">
               <div className="stat-number">{favoritesCount}</div>
-              <div className="stat-label">Liked Offers</div>
+              <div className="stat-label">Favoriten</div>
             </div>
             <div className="stat-box">
               <div className="stat-number">{historyCount}</div>
-              <div className="stat-label">Checked offers</div>
+              <div className="stat-label">Angesehen</div>
             </div>
           </div>
 
           <div className="profile-user-infos">
-            <h4 className="user-infos-title">User infos:</h4>
+            <h4 className="user-infos-title">Benutzerinformationen:</h4>
 
             <div className="info-row">
               <div className="info-icon">
@@ -244,7 +244,7 @@ export function ProfilePage() {
               <div className="info-icon">
                 {theme === "dark" ? <Moon size={20} /> : <Sun size={20} />}
               </div>
-              <div className="info-label">theme</div>
+              <div className="info-label">Design</div>
               <div className="theme-toggle-switch-native">
                 <div
                   className={`theme-toggle-knob-native ${theme === "dark" ? "active" : ""}`}
@@ -259,7 +259,7 @@ export function ProfilePage() {
               <div className="info-icon">
                 <Mail size={20} />
               </div>
-              <div className="info-label">daily emails</div>
+              <div className="info-label">Tägliche E-Mails</div>
               <div className="theme-toggle-switch-native">
                 <div
                   className={`theme-toggle-knob-native ${profile?.emailNotifications !== false ? "active" : ""}`}
@@ -270,13 +270,13 @@ export function ProfilePage() {
 
           <div className="profile-logout-container">
             <button className="logout-pill" onClick={handleLogout}>
-              logout
+              Abmelden
             </button>
           </div>
         </>
       ) : (
         <div className="profile-edit-mode">
-          <h4 className="user-infos-title">Edit Profile</h4>
+          <h4 className="user-infos-title">Profil bearbeiten</h4>
           <form onSubmit={handleSave} className="edit-profile-form">
             <div className="info-row edit">
               <div className="info-icon">
@@ -287,7 +287,7 @@ export function ProfilePage() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, displayName: e.target.value })
                 }
-                placeholder="First and Last name"
+                placeholder="Vor- und Nachname"
                 className="edit-input"
               />
             </div>
@@ -301,7 +301,7 @@ export function ProfilePage() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, email: e.target.value })
                 }
-                placeholder="email@example.com"
+                placeholder="email@beispiel.de"
                 className="edit-input"
               />
             </div>
@@ -353,7 +353,7 @@ export function ProfilePage() {
                 onChange={(e) =>
                   setEditForm({ ...editForm, location: e.target.value })
                 }
-                placeholder="Location"
+                placeholder="Standort"
                 className="edit-input"
               />
             </div>
@@ -364,10 +364,10 @@ export function ProfilePage() {
                 className="btn-secondary"
                 onClick={() => setEditing(false)}
               >
-                Cancel
+                Abbrechen
               </button>
               <button type="submit" className="btn-primary">
-                Save Changes
+                Speichern
               </button>
             </div>
           </form>

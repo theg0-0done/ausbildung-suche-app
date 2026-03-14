@@ -867,9 +867,8 @@ p:last-child {
 .detail-logo {
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  width: 100%;
+  justify-content: center;
 }
 
 .detail-logo img {

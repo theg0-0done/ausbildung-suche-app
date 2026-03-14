@@ -382,14 +382,14 @@ export function AuthPage() {
               onClick={() => switchMode("login")}
               type="button"
             >
-              Sign in
+              Anmelden
             </button>
             <button
               className={`segmented-btn ${mode === "register" ? "active" : ""}`}
               onClick={() => switchMode("register")}
               type="button"
             >
-              Register
+              Registrieren
             </button>
           </div>
         )}
@@ -397,11 +397,11 @@ export function AuthPage() {
         {mode === "login" && (
           <form onSubmit={handleLoginSubmit} className="auth-form clean-form">
             <div className="form-group clean">
-              <label htmlFor="email">Email address</label>
+              <label htmlFor="email">E-Mail Adresse</label>
               <input
                 type="email"
                 id="email"
-                placeholder="Your email"
+                placeholder="Deine E-Mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -411,12 +411,12 @@ export function AuthPage() {
             </div>
 
             <div className="form-group clean">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Passwort</label>
               <div className="input-with-eye">
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
-                  placeholder="Password"
+                  placeholder="Passwort"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
@@ -437,7 +437,7 @@ export function AuthPage() {
                   className="link-button-clean"
                   onClick={() => switchMode("forgot-password")}
                 >
-                  Forgot password?
+                  Passwort vergessen?
                 </button>
               </div>
             </div>
@@ -447,7 +447,7 @@ export function AuthPage() {
               className="primary-button solid black-btn"
               disabled={isLoading}
             >
-              {isLoading ? <span className="spinner-small" /> : "Sign in"}
+              {isLoading ? <span className="spinner-small" /> : "Anmelden"}
             </button>
           </form>
         )}
@@ -466,10 +466,10 @@ export function AuthPage() {
                 className="auth-form clean-form slider-entered"
               >
                 <div className="form-group clean">
-                  <label>Email address</label>
+                  <label>E-Mail Adresse</label>
                   <input
                     type="email"
-                    placeholder="Your email"
+                    placeholder="Deine E-Mail"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     autoComplete="email"
@@ -477,11 +477,11 @@ export function AuthPage() {
                   />
                 </div>
                 <div className="form-group clean">
-                  <label>Password</label>
+                  <label>Passwort</label>
                   <div className="input-with-eye">
                     <input
                       type={showRegPassword ? "text" : "password"}
-                      placeholder="Password"
+                      placeholder="Passwort"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       autoComplete="new-password"
@@ -501,11 +501,11 @@ export function AuthPage() {
                   </div>
                 </div>
                 <div className="form-group clean">
-                  <label>Confirm Password</label>
+                  <label>Passwort bestätigen</label>
                   <div className="input-with-eye">
                     <input
                       type={showRegPassword ? "text" : "password"}
-                      placeholder="Confirm Password"
+                      placeholder="Passwort bestätigen"
                       value={regConfirm}
                       onChange={(e) => setRegConfirm(e.target.value)}
                       autoComplete="new-password"
@@ -518,7 +518,7 @@ export function AuthPage() {
                   className="primary-button solid black-btn"
                   disabled={otpSending}
                 >
-                  {otpSending ? <span className="spinner-small" /> : "Register"}
+                  {otpSending ? <span className="spinner-small" /> : "Registrieren"}
                 </button>
               </form>
             )}
@@ -715,7 +715,7 @@ export function AuthPage() {
 
         {mode !== "forgot-password" && (
           <div className="social-login-container">
-            <div className="social-sign-in-text">Or</div>
+            <div className="social-sign-in-text">Oder</div>
             <div className="login-btn">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}

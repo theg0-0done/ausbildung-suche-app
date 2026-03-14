@@ -19,7 +19,7 @@ router.post("/google", async (req: Request, res: Response) => {
   try {
     const { credential } = req.body;
     if (!credential) {
-      res.status(400).json({ error: "Missing Google credential" });
+      res.status(400).json({ error: "Fehlende Google-Anmeldedaten" });
       return;
     }
 
@@ -30,7 +30,7 @@ router.post("/google", async (req: Request, res: Response) => {
 
     const payload = ticket.getPayload();
     if (!payload || !payload.email) {
-      res.status(400).json({ error: "Invalid Google token" });
+      res.status(400).json({ error: "Ungültiger Google-Token" });
       return;
     }
 
@@ -48,7 +48,7 @@ router.post("/google", async (req: Request, res: Response) => {
 
     if (userError) {
       console.error("Database error checking user:", userError);
-      res.status(500).json({ error: "DB-Error: " + userError.message });
+      res.status(500).json({ error: "Datenbankfehler." });
       return;
     }
 
@@ -70,7 +70,7 @@ router.post("/google", async (req: Request, res: Response) => {
         console.error("Database error creating Google user:", insertError);
         res
           .status(500)
-          .json({ error: "DB Insert Error: " + insertError?.message });
+          .json({ error: "Konto konnte nicht erstellt werden." });
         return;
       }
       user = newUser;
@@ -97,7 +97,7 @@ router.post("/google", async (req: Request, res: Response) => {
     console.error("Google Auth Error:", err);
     res
       .status(500)
-      .json({ error: "Google Auth Error: " + (err.message || String(err)) });
+      .json({ error: "Google Anmeldung fehlgeschlagen." });
   }
 });
 

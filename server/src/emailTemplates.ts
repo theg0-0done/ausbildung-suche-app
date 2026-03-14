@@ -36,12 +36,12 @@ export function buildDailyEmailHtml(data: DailyEmailData): string {
 
           <!-- Header -->
           <tr>
-            <td style="padding: 32px 28px 16px 28px; text-align: center;">
-              <div style="font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #7c5cfc, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: flex; align-items: center; justify-content: center; gap: 12px;">
-                <img src="${appBaseUrl}/ausbildungLogo.png" alt="Logo" width="36" height="36" style="border-radius: 8px; vertical-align: middle; display: inline-block;" />
-                <span style="vertical-align: middle;">AusbildungSuche</span>
+            <td style="padding: 40px 28px 24px 28px; text-align: center;">
+              <img src="${appBaseUrl}/ausbildungLogo.png" alt="Logo" width="48" height="48" style="border-radius: 10px; display: block; margin: 0 auto 16px auto;" />
+              <div style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #7c5cfc, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline-block;">
+                AusbildungSuche
               </div>
-              <div style="margin-top: 4px; font-size: 12px; color: #6b7280; letter-spacing: 1px; text-transform: uppercase;">
+              <div style="margin-top: 8px; font-size: 11px; color: #6b7280; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">
                 Tägliche Benachrichtigung
               </div>
             </td>
@@ -49,47 +49,25 @@ export function buildDailyEmailHtml(data: DailyEmailData): string {
 
           <!-- Greeting -->
           <tr>
-            <td style="padding: 8px 28px 0 28px;">
-              <p style="color: #d1d5db; font-size: 15px; margin: 0;">
+            <td style="padding: 0 28px;">
+              <p style="color: #d1d5db; font-size: 15px; margin: 0; text-align: center;">
                 Hallo ${firstName} 👋
               </p>
             </td>
           </tr>
 
-          <!-- Offer Count Badge -->
+          <!-- Offer Count Badge & Info -->
           <tr>
-            <td style="padding: 20px 28px;">
-              <div style="background: linear-gradient(135deg, rgba(124, 92, 252, 0.15), rgba(167, 139, 250, 0.1)); border: 1px solid rgba(124, 92, 252, 0.3); border-radius: 16px; padding: 24px; text-align: center;">
-                <div style="font-size: 42px; font-weight: 800; color: #a78bfa; line-height: 1;">
+            <td style="padding: 32px 28px;">
+              <div style="background: linear-gradient(135deg, rgba(124, 92, 252, 0.15), rgba(167, 139, 250, 0.1)); border: 1px solid rgba(124, 92, 252, 0.3); border-radius: 20px; padding: 36px 24px; text-align: center;">
+                <div style="font-size: 56px; font-weight: 800; color: #a78bfa; line-height: 1; margin-bottom: 12px;">
                   ${offerCount}
                 </div>
-                <div style="margin-top: 8px; color: #e5e7eb; font-size: 15px; font-weight: 500;">
-                  ${headline}
+                <div style="color: #e5e7eb; font-size: 16px; font-weight: 500; line-height: 1.5;">
+                  neue Ausbildungsangebote<br>
+                  im Bereich <span style="color: #a78bfa; font-weight: 700;">${bereich}</span>
                 </div>
               </div>
-            </td>
-          </tr>
-
-          <!-- Branch Info -->
-          <tr>
-            <td style="padding: 0 28px 20px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="background: rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 14px 18px;">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="padding-right: 10px; vertical-align: middle;">
-                          <div style="width: 8px; height: 8px; border-radius: 50%; background: #7c5cfc;"></div>
-                        </td>
-                        <td>
-                          <span style="color: #9ca3af; font-size: 12px;">Bereich</span><br>
-                          <span style="color: #e5e7eb; font-size: 14px; font-weight: 600;">${bereich}</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
             </td>
           </tr>
 
