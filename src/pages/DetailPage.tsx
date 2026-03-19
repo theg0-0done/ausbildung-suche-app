@@ -125,7 +125,7 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
   const d = detail ?? ({} as JobDetail);
   const title = d.stellenangebotsTitel || refnr;
   const employer = d.firma || "";
-  const jobUrl = getJobUrl(d.referenznummer || refnr);
+  const jobUrl = getJobUrl(d.referenznummer || refnr);  
 
   // Logo
   const logoHash = d.arbeitgeberKundennummerHash as string | undefined;
@@ -324,7 +324,7 @@ export default function DetailPage({ refnr, onBack }: DetailPageProps) {
         </article>
       </div>
     );
-  }
+  }  
 
   return (
     <div className="detail-page">

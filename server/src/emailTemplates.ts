@@ -107,8 +107,7 @@ export function buildDailyEmailHtml(data: DailyEmailData): string {
 
 export function buildDailyEmailSubject(
   offerCount: number,
-  location?: string,
+  _location?: string,
 ): string {
-  const locationText = location ? ` in ${location}` : "";
-  return `${offerCount} neue Ausbildungsangebote${locationText} — AusbildungSuche`;
+  return `${offerCount} neue Ausbildungsangebote — AusbildungSuche`;
 }
