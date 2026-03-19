@@ -19,7 +19,7 @@ import {
 import { log } from "console";
 
 const resend = new Resend(process.env.RESEND_API_KEY || "");
-const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:5173";
+const APP_BASE_URL = process.env.APP_BASE_URL || "https://ausbildung-suche-app.fatehsaid.com";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -221,7 +221,7 @@ export async function runDailyEmailJob(): Promise<{
       );
 
       const { error: sendError } = await resend.emails.send({
-        from: (process.env.RESEND_FROM_EMAIL as string) || "onboarding@resend.dev",
+        from: "AusbildungSuche <noreply@fatehsaid.com>",
         to: [user.email],
         subject,
         html,
@@ -271,7 +271,7 @@ export async function runDailyEmailJob(): Promise<{
       `Sent: ${stats.emailsSent}, Skipped: ${stats.emailsSkipped}, Failed: ${stats.emailsFailed}`,
   );
 
-  console.log(process.env.RESEND_FROM_EMAIL)
+
 
   return stats;
 }

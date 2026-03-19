@@ -83,7 +83,7 @@ export async function sendOtp(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: (process.env.RESEND_FROM_EMAIL as string) || "onboarding@resend.dev",
+      from: "AusbildungSuche <noreply@fatehsaid.com>",
       to: [email],
       subject: subjectMap[purpose],
       html: bodyMap[purpose],
