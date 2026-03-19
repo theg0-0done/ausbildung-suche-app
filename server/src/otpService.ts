@@ -1,6 +1,15 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "");
+// Lazy-init Resend to guarantee dotenv has loaded the API key
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const apiKey = process.env.RESEND_API_KEY || "";
+    console.log(`[OTP] Initializing Resend client. API key present: ${!!apiKey}, starts with re_: ${apiKey.startsWith("re_")}`);
+    _resend = new Resend(apiKey);
+  }
+  return _resend;
+}
 
 // ── In-memory OTP store ───────────────────────────────
 interface OtpEntry {
@@ -82,7 +91,7 @@ export async function sendOtp(
   };
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: "AusbildungSuche <noreply@fatehsaid.com>",
       to: [email],
       subject: subjectMap[purpose],

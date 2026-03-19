@@ -16,9 +16,17 @@ import {
   buildDailyEmailHtml,
   buildDailyEmailSubject,
 } from "./emailTemplates.js";
-import { log } from "console";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "");
+// Lazy-init Resend to guarantee dotenv has loaded the API key
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const apiKey = process.env.RESEND_API_KEY || "";
+    console.log(`[DailyEmail] Initializing Resend client. API key present: ${!!apiKey}, starts with re_: ${apiKey.startsWith("re_")}`);
+    _resend = new Resend(apiKey);
+  }
+  return _resend;
+}
 const APP_BASE_URL = process.env.APP_BASE_URL || "https://ausbildung-suche-app.fatehsaid.com";
 
 // ── Types ──────────────────────────────────────────────
@@ -220,7 +228,7 @@ export async function runDailyEmailJob(): Promise<{
         user.location || undefined,
       );
 
-      const { error: sendError } = await resend.emails.send({
+      const { error: sendError } = await getResend().emails.send({
         from: "AusbildungSuche <noreply@fatehsaid.com>",
         to: [user.email],
         subject,
